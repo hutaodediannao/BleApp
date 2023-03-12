@@ -3,6 +3,7 @@ package com.example.bleapp;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanFilter;
@@ -12,6 +13,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.ParcelUuid;
 import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
@@ -20,9 +22,12 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MainActivity extends AppCompatActivity {
@@ -32,6 +37,9 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothAdapter mBluetoothAdapter;
     private Intent mEnableBtIntent;
     private BluetoothLeScanner mScanner;
+    private RecyclerView recyclerView;
+    private UIAdapter uiAdapter;
+    private List<BluetoothDevice> deviceList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -94,6 +102,16 @@ public class MainActivity extends AppCompatActivity {
                     Manifest.permission.ACCESS_FINE_LOCATION
             });
         }
+
+        initView();
+    }
+
+    private void initView() {
+        recyclerView = findViewById(R.id.recyclerView);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this, RecyclerView.VERTICAL, false));
+        deviceList = new ArrayList<>();
+        uiAdapter = new UIAdapter(this, deviceList);
+        recyclerView.setAdapter(uiAdapter);
     }
 
     // 申请打开蓝牙请求的回调
@@ -119,9 +137,11 @@ public class MainActivity extends AppCompatActivity {
     private void initScanTask() {
         Log.i(TAG, "startScanTask: ");
         List<ScanFilter> filterList = new ArrayList<>();
+        ParcelUuid mParcelUuid = new ParcelUuid(UUID.fromString(UUIDManager.SERVER_UUID));
         ScanFilter filter = new ScanFilter.Builder()
 //                .setDeviceName("Bluno")
-                .setDeviceAddress("88:33:14:DC:76:26")
+//                .setDeviceAddress("88:33:14:DC:76:26")
+                .setServiceUuid(mParcelUuid)
                 .build();
         filterList.add(filter);
         ScanSettings settings = new ScanSettings.Builder()
@@ -129,10 +149,15 @@ public class MainActivity extends AppCompatActivity {
                 .build();
 
         mScanner.startScan(filterList, settings, new ScanCallback() {
+            @SuppressLint("NotifyDataSetChanged")
             @Override
             public void onScanResult(int callbackType, ScanResult result) {
                 super.onScanResult(callbackType, result);
                 Log.i(TAG, "onScanResult: result: " + result.getDevice().getName() + ", address:" + result.getDevice().getAddress());
+                if (!deviceList.contains(result.getDevice())) {
+                    deviceList.add(result.getDevice());
+                    uiAdapter.notifyDataSetChanged();
+                }
             }
         });
     }

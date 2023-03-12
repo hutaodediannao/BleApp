@@ -1,6 +1,6 @@
 package com.example.bleapp;
 
-public class BluetoothManager {
+public class UUIDManager {
     //服务
     public static final String SERVER_UUID = "0000dfb0-0000-1000-8000-00805f9b34fb";
 
